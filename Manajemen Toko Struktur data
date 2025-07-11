@@ -1,0 +1,155 @@
+import csv
+from collections import deque
+from datetime import datetime
+import os
+os.system("cls")
+
+produk_list = []
+transaksi_queue = deque()
+transaksi_list = []
+
+def baca_produk():
+    with open("produk.csv", mode='r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            produk_list.append(row)
+
+def simpan_produk():
+    with open("produk.csv", mode='w', newline='') as f:
+        fieldnames = ['id', 'nama', 'stok', 'harga', 'deskripsi']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for p in produk_list:
+            writer.writerow(p)
+
+def create_produk():
+    produk = {
+        'id': input("Masukan ID barang: "),
+        'nama': input("Masukan nama barang: "),
+        'stok': input("Masukan stok barang: "),
+        'harga': input("Masukan harga barang: "),
+        'deskripsi': input("Masukan deskripsi barang: ")
+    }
+    produk_list.append(produk)
+    simpan_produk()
+    print("Penambahan produk berhasil.")
+
+def read_produk():
+    for p in produk_list:
+        print(p)
+
+def update_produk():
+    update_id = input("Masukan ID produk yang ingin diubah: ")
+    for p in produk_list:
+        if p['id'] == update_id:
+            p['nama'] = input("Nama baru: ")
+            p['stok'] = input("Stok baru: ")
+            p['harga'] = input("Harga baru: ")
+            p['deskripsi'] = input("Deskripsi baru: ")
+            simpan_produk()
+            print("Produk berhasil diperbarui.")
+            return
+    print("Produk tidak ditemukan.")
+
+def delete_produk():
+    id_dihapus = input("Masukan ID produk yang ingin dihapus: ")
+    for p in produk_list:
+        if p['id'] == id_dihapus:
+            produk_list.remove(p)
+            simpan_produk()
+            print(f"Produk dengan ID {id_dihapus} berhasil dihapus.")
+            return
+    print("Produk tidak ditemukan.")
+
+def tambah_transaksi():
+    jenis = input("Jenis transaksi (jual/beli): ")
+    id_produk = input("ID produk: ")
+    for p in produk_list:
+        if p['id'] == id_produk:
+            jumlah = int(input("Jumlah: "))
+            tanggal = datetime.today().strftime('%Y-%m-%d')
+            transaksi = {
+                'jenis': jenis,
+                'id': id_produk,
+                'jumlah': jumlah,
+                'tanggal': tanggal
+            }
+            transaksi_queue.append(transaksi)
+            print("Transaksi berhasil ditambahkan ke antrian.")
+            return
+    print("ID produk tidak ditemukan.")
+
+def proses_transaksi():
+    while transaksi_queue:
+        tra = transaksi_queue.popleft()
+        for p in produk_list:
+            if p['id'] == tra['id']:
+                stok_awal = int(p['stok'])
+                jumlah = tra['jumlah']
+                if tra['jenis'] == 'jual':
+                    if stok_awal >= jumlah:
+                        p['stok'] = str(stok_awal - jumlah)
+                        transaksi_list.append(tra)
+                        print("Transaksi penjualan berhasil diproses.")
+                    else:
+                        print("Stok tidak cukup untuk dijual.")
+                elif tra['jenis'] == 'beli':
+                    p['stok'] = str(stok_awal + jumlah)
+                    transaksi_list.append(tra)
+                    print("Transaksi pembelian berhasil diproses.")
+    simpan_produk()
+
+def simpan_transaksi():
+    with open("transaksi.csv", mode='w', newline='') as f:
+        fieldnames = ['jenis', 'id', 'jumlah', 'tanggal']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for t in transaksi_list:
+            writer.writerow(t)
+
+def laporan():
+    tipe = input("Laporan (harian/mingguan/bulanan): ")
+    hari_ini = datetime.today()
+    for t in transaksi_list:
+        tgl = datetime.strptime(t['tanggal'], '%Y-%m-%d')
+        if tipe == 'harian' and tgl.date() == hari_ini.date():
+            print(t)
+        elif tipe == 'mingguan' and tgl.strftime('%U') == hari_ini.strftime('%U'):
+            print(t)
+        elif tipe == 'bulanan' and tgl.month == hari_ini.month:
+            print(t)
+
+def menu():
+    baca_produk()
+    while True:
+        print("=== MENU UTAMA ===")
+        print("1. Tampil Produk")
+        print("2. Tambah Produk")
+        print("3. Update Produk")
+        print("4. Hapus Produk")
+        print("5. Transaksi")
+        print("6. Laporan")
+        print("7. Keluar")
+        pilih = input("Pilih menu: ")
+        if pilih == '1':
+            read_produk()
+        elif pilih == '2':
+            create_produk()
+        elif pilih == '3':
+            update_produk()
+        elif pilih == '4':
+            delete_produk()
+        elif pilih == '5':
+            tambah_transaksi()
+            proses_transaksi()
+            simpan_transaksi()
+        elif pilih == '6':
+            laporan()
+        elif pilih == '7':
+            break
+        else:
+            print("Pilihan tidak valid.")
+
+
+if __name__ == '__main__':
+    menu()
